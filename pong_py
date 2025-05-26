@@ -1,0 +1,115 @@
+import pygame
+import sys
+
+# Inicialización de pygame
+pygame.init()
+
+# Configuración de la ventana
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Pong")
+
+# Colores
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+
+# Dimensiones de los objetos
+PADDLE_WIDTH, PADDLE_HEIGHT = 15, 100
+BALL_SIZE = 15
+
+# Creación de los rectángulos de los jugadores y la pelota
+player1 = pygame.Rect(50, (HEIGHT - PADDLE_HEIGHT) // 2, PADDLE_WIDTH, PADDLE_HEIGHT)
+player2 = pygame.Rect(WIDTH - 50 - PADDLE_WIDTH, (HEIGHT - PADDLE_HEIGHT) // 2, PADDLE_WIDTH, PADDLE_HEIGHT)
+ball = pygame.Rect((WIDTH - BALL_SIZE) // 2, (HEIGHT - BALL_SIZE) // 2, BALL_SIZE, BALL_SIZE)
+
+# Velocidades
+player_speed = 6
+ball_speed_x = 4
+ball_speed_y = 4
+
+# Puntuaciones de los jugadores
+score1 = 0
+score2 = 0
+
+# Configuración del reloj y fuente (manteniendo 60 FPS)
+clock = pygame.time.Clock()
+FPS = 60
+font = pygame.font.SysFont("Arial", 30)
+
+# Variables para optimizar la renderización del marcador
+score_surface = font.render(f"{score1} - {score2}", True, WHITE)
+last_scores = (score1, score2)
+
+def draw():
+    global score_surface, last_scores
+    # Fondo negro
+    screen.fill(BLACK)
+    
+    # Dibujar las paletas y la pelota
+    pygame.draw.rect(screen, WHITE, player1)
+    pygame.draw.rect(screen, WHITE, player2)
+    pygame.draw.ellipse(screen, WHITE, ball)
+    
+    # Dibujar la línea central
+    pygame.draw.aaline(screen, WHITE, (WIDTH // 2, 0), (WIDTH // 2, HEIGHT))
+    
+    # Actualizar la imagen del marcador solo si la puntuación cambia
+    if (score1, score2) != last_scores:
+        score_surface = font.render(f"{score1} - {score2}", True, WHITE)
+        last_scores = (score1, score2)
+    
+    # Dibujar el marcador en la parte superior central
+    screen.blit(score_surface, (WIDTH // 2 - score_surface.get_width() // 2, 20))
+    
+    pygame.display.flip()
+
+def reset_ball():
+    """Reinicia la posición de la pelota y la envía hacia el jugador que perdió el punto."""
+    global ball_speed_x
+    ball.center = (WIDTH // 2, HEIGHT // 2)
+    ball_speed_x *= -1
+
+running = True
+while running:
+    clock.tick(FPS)
+    
+    # Manejo de eventos
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    # Controles de las paletas
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_w] and player1.top > 0:
+        player1.y -= player_speed
+    if keys[pygame.K_s] and player1.bottom < HEIGHT:
+        player1.y += player_speed
+    if keys[pygame.K_UP] and player2.top > 0:
+        player2.y -= player_speed
+    if keys[pygame.K_DOWN] and player2.bottom < HEIGHT:
+        player2.y += player_speed
+
+    # Movimiento de la pelota
+    ball.x += ball_speed_x
+    ball.y += ball_speed_y
+
+    # Colisiones con el techo y el suelo
+    if ball.top <= 0 or ball.bottom >= HEIGHT:
+        ball_speed_y *= -1
+
+    # Colisiones con las paletas
+    if ball.colliderect(player1) or ball.colliderect(player2):
+        ball_speed_x *= -1
+
+    # Actualización de la puntuación y reinicio de la pelota
+    if ball.left <= 0:
+        score2 += 1
+        reset_ball()
+    elif ball.right >= WIDTH:
+        score1 += 1
+        reset_ball()
+
+    draw()
+
+pygame.quit()
+sys.exit()
